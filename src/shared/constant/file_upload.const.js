@@ -1,0 +1,1 @@
+export const ASSETS_ROOT = process.env.ASSETS_ROOT;

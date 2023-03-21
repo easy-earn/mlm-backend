@@ -1,0 +1,11 @@
+export const constants = {
+  JWT_TOKEN_SECRET: process.env.JWT_TOKEN_SECRET,
+  TOKEN_EXPIRES_IN_DAY: process.env.TOKEN_EXPIRES_IN_DAY,
+  JWT_ADMIN_TOKEN_SECRET: process.env.JWT_ADMIN_TOKEN_SECRET,
+  ADMIN_TOKEN_EXPIRES_IN_DAY: process.env.ADMIN_TOKEN_EXPIRES_IN_DAY,
+};
+
+export const admin_constants = {
+  ADMIN_USER_ACTIVE: 1,
+  ADMIN_USER_IN_ACTIVE: 0
+}

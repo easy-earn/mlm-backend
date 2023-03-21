@@ -1,0 +1,79 @@
+/* find User thatt's email end with specific host */
+
+const user = await User.get({ email: { $not: { $in: [null, '', ""] } } });
+user.forEach(element => {
+    if (element.email.endsWith("@privaterelay.appleid.com")) {
+    console.log("user", element.email, element._id, element.social_id);
+    }
+});
+
+
+/* find User with specific Email */
+
+const user = await User.get({ email: 'ap@ebizzinoftech.com' });
+
+
+/* Insert new field in all record in Mongo Table */
+
+const records = await Therapy.get({ is_upcomming: { $eq: null } });
+loop(records, async (record) => {
+    await Therapy.update({ _id: record._id }, { is_upcomming: false })
+})
+
+/* Add new fields in subcategory/therapy/resource/user table */
+
+const subcatrecords = await SubCategory.get({ is_upcomming: { $eq: null } });
+loop(subcatrecords, async (record) => {
+    await SubCategory.update({ _id: record._id }, { is_upcomming: false })
+})
+
+const subcatrecordsnew = await SubCategory.get({ thumbnail_url: { $eq: null } });
+loop(subcatrecordsnew, async (record) => {
+    await SubCategory.update({ _id: record._id }, { thumbnail_url: '' })
+})
+
+const records = await Therapy.get({ is_upcomming: { $eq: null } });
+loop(records, async (record) => {
+    await Therapy.update({ _id: record._id }, { is_upcomming: false })
+})
+
+const rrrecords = await Resource.get({ is_upcomming: { $eq: null } });
+loop(rrrecords, async (record) => {
+    await Resource.update({ _id: record._id }, { is_upcomming: false })
+})
+
+const userrecords = await User.get({ role: { $eq: null } });
+loop(userrecords, async (record) => {
+    await User.update({ _id: record._id }, { role: USER_ROLE.PATIENT })
+})
+
+
+/* Find Duplicate Named User from User Table */
+
+ const pipeline = [
+    { $match: { 'name': { $ne: null } } },
+    { $match: { 'login_type': { $eq: 0 } } },
+    {
+    $group: {
+        _id: '$name',
+        count: { $sum: 1 },
+        // users: { $push: "$$ROOT" },
+        email: { $push: "$$ROOT.email" },
+        login_type: { $push: "$$ROOT.login_type" },
+        phone_number: { $push: "$$ROOT.phone_number" }
+    }
+    },
+    {
+    $match: { count: { $gt: 1 } }
+    },
+]
+let users = await User.aggregate(pipeline);
+users = users.map(element => {
+    element.email = element.email.map(email => {
+    email = decrypt(email);
+    return email;
+    })
+    return element
+});
+
+
