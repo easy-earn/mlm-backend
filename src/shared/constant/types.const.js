@@ -11,3 +11,19 @@ export const MODAL_ID = Object.freeze({
     Admin: 'admin_id',
 });
 
+
+
+export const TRANSACTION_TYPE = Object.freeze({
+    UPI: 0,
+    RAZORPAY: 1
+})
+
+export const TRANSACTION_VERIFIED_STATUS = Object.freeze({
+    TRUE: 1,
+    FALSE: 0
+})
+
+export const COMMISION_PERCENTAGE = Object.freeze({
+    PARENT: 30,
+    GRAND_PARENT: 15,
+});

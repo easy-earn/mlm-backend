@@ -25,7 +25,6 @@ export const adminAuthMiddleware = async (req, res, next) => {
     }
 
     const authorization = req.headers[AUTHORIZATION_HEADER_NAME];
-    logger.log(level.info, `req.headers: ${beautify(req.headers)}`);
     if (authorization) {
         let token = authorization.split(tokenSplitBy);
         let length = token.length;
@@ -62,6 +61,7 @@ export const authMiddleware = async (req, res, next) => {
     }
 
     const authorization = req.headers[AUTHORIZATION_HEADER_NAME];
+    logger.log(level.info, `req.headers: ${authorization}`);
     if (authorization) {
         let token = authorization.split(tokenSplitBy);
         let length = token.length;

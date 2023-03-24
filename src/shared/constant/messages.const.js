@@ -10,7 +10,7 @@ export default {
   user_already_verified: "Already Verified.",
   user_verified_success: "Email Verified.",
   otp_expired: "OTP Expired Or Wrong OTP Or Account Not Exist",
-  email_password_not_match: "Email or Password does not Match.",
+  email_password_not_match: "Email or Password does not Match Or Verify Your Account.",
   email_phone_missing: "Email or Phone Number is Missing.",
   login_failed: "Login Failed",
   already_exist: "{dynamic} Already Exist.",
@@ -46,5 +46,8 @@ export default {
   already_used_code: "You already Redeem Your Trial Code.",
   trial_not_exceeded: "Trial Not Exceeded.",
   notification_sent: "Notification Sent.",
-  password_already_updated: "Password Already Updated"
+  password_already_updated: "Password Already Updated",
+  wrong_plan_amount: "You are trying to purchase invalid plan.",
+  transaction_not_verified: "Transaction Not Verified.",
+  transaction_user_not_vefiried: "Transaction is verified but user is not verified."
 }

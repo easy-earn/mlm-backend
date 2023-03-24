@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { signUp, login, forgotPassword, getUserByID, updatePassword, resetPasswordLinkExpirePage, passwordUpdatedPage, resetPasswordPage, passwordUpdateFailedPage, updateUserDetail, verifyOTP, resendOTP } from "../controllers/authentication.controller.js";
+import { signUp, login, forgotPassword, getUserByID, updatePassword, updateUserDetail, verifyOTP, resendOTP } from "../controllers/authentication.controller.js";
 import { authMiddleware } from "../shared/middleweres/auth.middlewere.js";
 
 const routes = new Router();
@@ -11,20 +11,8 @@ const Path = {
   forgotPassword: "/forgot-password",
   userByID: "/user",
   updatePassword: "/update-password",
-  updateUserDetail: "/user",
-
-  // Pages
-  resetPasswordPage: "/:email/password/:time/:mailid/:tc",
-  resetPasswordLinkExpiredPage: "/users/link/expired",
-  passwordUpdatedPage: "/users/:email/success",
-  passwordUpdateFailedPage: "/users/:email/failure"
+  updateUserDetail: "/user"
 };
-
-// Pages
-routes.get(Path.resetPasswordPage, resetPasswordPage);
-routes.get(Path.resetPasswordLinkExpiredPage, resetPasswordLinkExpirePage);
-routes.get(Path.passwordUpdatedPage, passwordUpdatedPage);
-routes.get(Path.passwordUpdateFailedPage, passwordUpdateFailedPage);
 
 routes.post(Path.register, signUp);
 routes.post(Path.verifyOTP, verifyOTP);

@@ -1,0 +1,48 @@
+{
+  "type": "object",
+  "properties": {
+    "upi": {
+      "type": "string",
+      "minLength": 1,
+      "errorMessage": {
+        "minLength": "UPI ID is required."
+      }
+    },
+    "utr": {
+      "type": "string",
+      "minLength": 1,
+      "errorMessage": {
+        "minLength": "UTR Number is required."
+      }
+    },
+    "bank_account_number": {
+      "type": "number",
+      "minLength": 1,
+      "errorMessage": {
+        "minLength": "Bank account number is required."
+      }
+    },
+    "ifsc_code": {
+      "type": "string",
+      "minLength": 1,
+      "errorMessage": {
+        "minLength": "IFSC code is required."
+      }
+    },
+    "plan_id": {
+      "type": "string",
+      "minLength": 1,
+      "errorMessage": {
+        "minLength": "Plan Id is required."
+      }
+    }
+  },
+  "required": [
+    "upi",
+    "utr",
+    "bank_account_number",
+    "ifsc_code",
+    "plan_id"
+  ],
+  "additionalProperties": false
+}

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import DBOperation from "./../shared/services/database/database_operation.service.js";
 import SchemaMethods from "./../shared/services/database/schema_methods.service.js";
 import { encrypt, decrypt } from "./../shared/utils/utility.js";
@@ -75,7 +76,20 @@ const schema = {
   },
   referral_code: {
     type: String,
-    default: ""
+    default: null
+  },
+  transaction_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "UserTransaction",
+    required: false,
+    trim: true,
+    default: null
+  },
+  account_balance: {
+    type: Number,
+    required: false,
+    trim: true,
+    default: 0
   },
   // Used for forgot password
   forgot_otp: {
@@ -96,6 +110,13 @@ const schema = {
 
 const modelName = "User";
 const UserSchema = DBOperation.createSchema(modelName, schema);
+
+UserSchema.virtual("transaction", {
+  ref: 'UserTransaction',
+  localField: 'transaction_id',
+  foreignField: '_id',
+  justOne: true
+})
 
 let UserModel = DBOperation.createModel(modelName, UserSchema);
 const User = new SchemaMethods(UserModel);

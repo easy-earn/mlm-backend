@@ -1,8 +1,19 @@
 import messages from "../shared/constant/messages.const.js";
 import { logger, level } from "../config/logger.js";
-import { internalServerError, beautify, okResponse } from "../shared/utils/utility.js";
+import { internalServerError, beautify, okResponse, badRequestError } from "../shared/utils/utility.js";
 import User from "../models/user.model.js";
 import { returnOnNotExist } from "../shared/services/database/query.service.js";
+import * as planPurchaseJSONSchema from "../ajv-schema/plan-purchase-form.schema.json" assert { type: "json" };
+import Ajv from 'ajv';
+import addFormats from "ajv-formats";
+import addErrors from "ajv-errors";
+import { TRANSACTION_TYPE, TRANSACTION_VERIFIED_STATUS } from "../shared/constant/types.const.js";
+import UserTransaction from "../models/user-transaction.model.js";
+import Plan from "../models/plan.model.js";
+const ajv = new Ajv({ $data: true, allErrors: true });
+addFormats(ajv);
+addErrors(ajv);
+const upiTransactionValidator = ajv.compile(planPurchaseJSONSchema);
 
 export const removeAccount = async (req, res) => {
   try {
@@ -17,5 +28,55 @@ export const removeAccount = async (req, res) => {
   catch (error) {
     logger.log(level.error, `removeAccount Error: ${beautify(error.message)}`);
     return internalServerError(res, error);
+  }
+}
+
+export const upiPurchase = async (req, res) => {
+  try {
+    let data = req.body;
+    logger.log(level.info, `upiPurchase Data: ${beautify(data)}`);
+    const isValid = await upiTransactionValidator(data);
+    console.log('isValid', isValid);
+    const [plan] = await Plan.get({ _id: data.plan_id });
+    if (plan) {
+      const transaction = {
+        user_id: req['currentUserId'],
+        upi: data?.upi,
+        utr: data?.utr,
+        plan_id: plan._id,
+        transaction_type: TRANSACTION_TYPE.UPI,
+        is_verified: TRANSACTION_VERIFIED_STATUS.FALSE
+      }
+      const newTransaction = await UserTransaction.add(transaction);
+      if (newTransaction) {
+        return okResponse(res, messages.created.replace("{dynamic}", 'Transaction'), newTransaction)
+      } else {
+        return badRequestError(res);
+      }
+    }
+  } catch (error) {
+    logger.log(level.error, `upiPurchase : Internal server error : ${beautify(error.message)}`)
+    return internalServerError(res, error.message)
+  }
+}
+
+export const getMyProfile = async (req, res) => {
+  try {
+    logger.log(level.info, `getMyProfile`);
+    const [user] = await User.get({ _id: req['currentUserId'] }, null, null, { path: 'transaction', populate: { path: 'plan_id' } });
+    console.log('user', user);
+    if (user) {
+      const object = JSON.parse(JSON.stringify(user));
+      if (!object.transaction_id) delete object.referral_code;
+      delete object.forgot_otp;
+      delete object.confirmation_otp;
+      console.log('object', object);
+      return okResponse(res, messages.record_fetched, JSON.parse(JSON.stringify(object)))
+    } else {
+      return badRequestError(res, messages.user_missing);
+    }
+  } catch (error) {
+    logger.log(level.error, `getMyProfile : Internal server error : ${beautify(error.message)}`)
+    return internalServerError(res, error.message)
   }
 }

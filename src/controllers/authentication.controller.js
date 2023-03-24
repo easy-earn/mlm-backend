@@ -68,10 +68,11 @@ export const signUp = async (request, response) => {
         SendEmail(data.email, "verification", OTP, data?.name || 'There');
       }
       delete resp['confirmation_otp'];
+      console.log('data', JSON.parse(JSON.stringify(data)));
       await generateReferenceLink(data?.parent_code, newUser?.referral_code, resp?._id);
 
-      const returnData = await generateToken(response, resp.email, resp);
-      okResponse(response, messages.register_success, returnData);
+      // const returnData = await generateToken(response, resp.email, resp);
+      okResponse(response, messages.register_success, resp);
       // Generate Ref 
     }, async (error) => {
       logger.log(level.error, `User Registeration Error : ${beautify(error.message)}`)
@@ -249,13 +250,9 @@ export const getUserByID = async (request, response) => {
 export const updatePassword = async (request, response) => {
   try {
     const { email, password, otp } = request.body;
-    const body = {
-      password: password.toString()
-    }
-    console.log('body', body);
+    const body = { password: password.toString() }
     logger.log(level.info, `update password body: ${beautify(body)}`);
     const isExist = await userExist({ email: email, password: password });
-    console.log('isExist', isExist, email, password);
     if (isExist && isExist.length > 0) {
       return okResponse(response, messages.password_already_updated, null);
     }
@@ -272,22 +269,6 @@ export const updatePassword = async (request, response) => {
 }
 
 /* Pages Redirection */
-
-export const resetPasswordPage = async (request, response) => {
-  response.render('change_password.ejs', { asset_url, apiURL: APP_CONST.API_URL })
-}
-
-export const resetPasswordLinkExpirePage = async (request, response) => {
-  response.render('expired.ejs', { asset_url });
-}
-
-export const passwordUpdatedPage = async (request, response) => {
-  response.render('change_pass_success.ejs', { asset_url })
-}
-
-export const passwordUpdateFailedPage = async (request, response) => {
-  response.render('change_pass_failure.ejs', { asset_url })
-}
 
 /* Commonly used functions */
 
@@ -401,16 +382,28 @@ async function generateToken(response, email, userDoc = null) {
  * @param new_user_id: new user ID that is signed up recently.
  * 
  * */
-async function generateReferenceLink(parent_code, refferal_code, new_user_id) {
+async function generateReferenceLink(parent_code, referral_code, new_user_id) {
   // Find Parent By It's Refferal_code field
-  const filter = { refferal_code: parent_code };
+  console.log('parentUser', parent_code, 'refferal', referral_code);
+  // const filter = { refferal_code: parent_code };
+  const filter = {
+    referral_code: {
+      $exists: true, // check if myKey exists
+      $ne: null, // check if myKey is not null
+      $nin: ['', undefined], // check if myKey is not an empty string or undefined
+      $eq: parent_code // check if myKey is equal to 'myValue'
+    }
+  }
+  console.log('filter', filter);
   const parentUser = await User.get(filter);
+  console.log('parentUser', parentUser);
   if (parentUser && parentUser?.length > 0) {
+    console.log('parentUser id', parentUser[0]._id, new_user_id);
     const new_link = {
       parent: parentUser[0]._id,
       child: new_user_id,
       parent_code: parent_code,
-      child_code: refferal_code
+      child_code: referral_code
     }
     console.log('new_link', new_link);
     await ReferUser.add(new_link);

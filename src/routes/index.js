@@ -12,7 +12,6 @@ const Path = {
 
 routes.use(Path.admin, AdminRoutes);
 routes.use(Path.auth, AuthRoutes);
-
 routes.use(Path.user, UserRoutes);
 
 
