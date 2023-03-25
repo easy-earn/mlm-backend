@@ -477,7 +477,7 @@ async function calculateCommisionForParent(user_id) {
           if (childPlanAmount > parentPlanAmount) {
             baseAmount = parentPlanAmount;
           }
-
+          logger.log(level.info, `Parent BaseAmount Record=${beautify(baseAmount)}`);
           const newBalance = parent?.account_balance + (baseAmount * COMMISION_PERCENTAGE.PARENT / 100)
           logger.log(level.info, `parent New Balance Record=${newBalance}`);
 
@@ -500,6 +500,7 @@ async function calculateCommisionForParent(user_id) {
               if (childPlanAmount > grandParentPlanAmount) {
                 baseAmount = grandParentPlanAmount;
               }
+              logger.log(level.info, `GrandeRef Parent BaseAmount Record=${beautify(baseAmount)}`);
               const newGrandBalance = grandParent.account_balance + (baseAmount * COMMISION_PERCENTAGE.GRAND_PARENT / 100)
               logger.log(level.info, `GrandeRef Parent New balance Record=${beautify(newGrandBalance)}`);
               const updatedGrandParent = await User.update({ _id: grandparentId }, { account_balance: newGrandBalance })
