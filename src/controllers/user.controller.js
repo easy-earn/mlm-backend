@@ -10,6 +10,7 @@ import addErrors from "ajv-errors";
 import { TRANSACTION_TYPE, TRANSACTION_VERIFIED_STATUS } from "../shared/constant/types.const.js";
 import UserTransaction from "../models/user-transaction.model.js";
 import Plan from "../models/plan.model.js";
+import ReferUser from "../models/refer_user.model.js";
 const ajv = new Ajv({ $data: true, allErrors: true });
 addFormats(ajv);
 addErrors(ajv);
@@ -77,6 +78,26 @@ export const getMyProfile = async (req, res) => {
     }
   } catch (error) {
     logger.log(level.error, `getMyProfile : Internal server error : ${beautify(error.message)}`)
+    return internalServerError(res, error.message)
+  }
+}
+
+export const getMyChildUsers = async (req, res) => {
+  try {
+    const { query } = req;
+    const { option = {} } = query;
+    logger.log(level.info, `getMyChildUsers`);
+    const currentUser = req['currentUserId'];
+    const refs = await ReferUser.get({ parent: currentUser });
+    const childs = refs.map(item => item.child);
+    var childUsers = [], count = 0;
+    if (childs.length > 0) {
+      childUsers = await User.get({ _id: { $in: [...childs] } }, null, option, { path: 'transaction', populate: { path: 'plan' } });
+      count = await User.count({ _id: { $in: [...childs] } }, null, option);
+    }
+    return okResponse(res, messages.record_fetched, childUsers, count)
+  } catch (error) {
+    logger.log(level.error, `getMyChildUsers : Internal server error : ${beautify(error.message)}`)
     return internalServerError(res, error.message)
   }
 }
