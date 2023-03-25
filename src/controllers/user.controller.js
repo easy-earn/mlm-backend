@@ -67,8 +67,18 @@ export const getMyProfile = async (req, res) => {
     const [user] = await User.get({ _id: req['currentUserId'] }, null, null, { path: 'transaction', populate: { path: 'plan_id' } });
     console.log('user', user);
     if (user) {
+      const [pendingTransaction] = await UserTransaction.get({ user_id: req['currentUserId'] })
       const object = JSON.parse(JSON.stringify(user));
-      if (!object.transaction_id) delete object.referral_code;
+      //  No transaction id means no manual verification done by admin.
+      if (pendingTransaction) {
+        if (pendingTransaction.is_verified == TRANSACTION_VERIFIED_STATUS.FALSE || !object?.transaction_id) {
+          // Do nothing
+          object['payment_verification_pending'] = true;
+          delete object.referral_code;
+        }
+      } else {
+        delete object.referral_code;
+      }
       delete object.forgot_otp;
       delete object.confirmation_otp;
       console.log('object', object);

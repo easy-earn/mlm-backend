@@ -385,6 +385,7 @@ export const verifyUserPurchase = async (req, res) => {
     logger.log(level.info, `verifyUserPurchase Created: ${beautify(transaction_verified)}`);
     if (transaction_verified) {
       const updated = await updateTransactionIdIntoUser(transaction_verified.user_id, transaction_verified._id, transaction_verified);
+      // await calculateCommisionForParentOld(transaction_verified.user_id);
       await calculateCommisionForParent(transaction_verified.user_id);
       return okResponse(res, messages.updated.replace("{dynamic}", 'Transaction'), { user: updated, transaction: transaction_verified });
     } else {
@@ -399,13 +400,53 @@ export const verifyUserPurchase = async (req, res) => {
 async function updateTransactionIdIntoUser(user_id, transaction_id, transaction_verified) {
   const udpated_user = await User.update({ _id: user_id }, { transaction_id: transaction_id })
   return udpated_user;
-  // if (udpated_user) {
-  //   return okResponse(res, messages.created.replace("{dynamic}", 'Plan'), transaction_verified);
-  // } else {
-  //   logger.log(level.error, `verifyUserPurchase error= transaction_id : ${transaction_id}`);
-  //   return badRequestError(res, messages.transaction_user_not_vefiried);
-  // }
 }
+
+// async function calculateCommisionForParentOld(user_id) {
+//   try {
+//     logger.log(level.info, `Transaction verification function userID=${user_id}`);
+//     const transaction = await UserTransaction.get({ is_verified: TRANSACTION_VERIFIED_STATUS.TRUE, user_id: user_id })
+//     logger.log(level.info, `Transaction Record=${beautify(transaction)}`);
+//     if (transaction && transaction.length > 0) {
+//       const [plan] = await Plan.get({ _id: transaction[0].plan_id });
+//       logger.log(level.info, `Plan Record=${beautify(plan)}`);
+//       const ref = await ReferUser.get({ child: user_id });
+//       logger.log(level.info, `Ref Record=${beautify(ref)}`);
+//       if (ref && ref.length > 0) {
+//         const parentId = ref[0].parent;
+//         logger.log(level.info, `parentId Record=${parentId}`);
+//         const [parent] = await User.get({ _id: parentId });
+//         logger.log(level.info, `parent Record=${beautify(parent)}`);
+//         const oldBalance = parent?.account_balance;
+//         logger.log(level.info, `parent Old Balance Record=${oldBalance}`);
+//         const newBalance = parent?.account_balance + (plan.amount * COMMISION_PERCENTAGE.PARENT / 100)
+//         logger.log(level.info, `parent New Balance Record=${newBalance}`);
+//         const updatedParent = await User.update({ _id: parentId }, { account_balance: newBalance })
+//         logger.log(level.info, `updated-Parent-Percent Old Balance: ${oldBalance}, New Balance: ${newBalance}`);
+//         logger.log(level.info, `updated-Parent-Percent $updated=${beautify(updatedParent)}`);
+//         const grandRef = await ReferUser.get({ child: parentId })
+//         logger.log(level.info, `GrandeRef Record=${beautify(grandRef)}`);
+//         if (grandRef && grandRef.length > 0) {
+//           const grandparentId = grandRef[0].parent;
+//           logger.log(level.info, `GrandeRef Parent Id Record=${grandparentId}`);
+//           const [grandParent] = await User.get({ _id: grandparentId });
+//           logger.log(level.info, `GrandeRef Parent Record=${beautify(grandParent)}`);
+//           const oldGrandBalance = grandParent?.account_balance;
+//           logger.log(level.info, `GrandeRef Parent Old balance Record=${beautify(oldGrandBalance)}`);
+//           const newGrandBalance = grandParent.account_balance + (plan.amount * COMMISION_PERCENTAGE.GRAND_PARENT / 100)
+//           logger.log(level.info, `GrandeRef Parent New balance Record=${beautify(newGrandBalance)}`);
+//           const updatedGrandParent = await User.update({ _id: grandparentId }, { account_balance: newGrandBalance })
+//           logger.log(level.info, `updated-Grand-Parent-Percent Old Balance: ${oldGrandBalance}, New Balance: ${newGrandBalance}, Updated: ${beautify(updatedGrandParent)}`);
+//           logger.log(level.info, `updated-Grand-Parent-Percent Updated: ${beautify(updatedGrandParent)}`);
+//         }
+//       }
+//     } else {
+//       return null;
+//     }
+//   } catch (error) {
+//     console.log('Transaction verification error', error);
+//   }
+// }
 
 async function calculateCommisionForParent(user_id) {
   try {
@@ -413,42 +454,68 @@ async function calculateCommisionForParent(user_id) {
     const transaction = await UserTransaction.get({ is_verified: TRANSACTION_VERIFIED_STATUS.TRUE, user_id: user_id })
     logger.log(level.info, `Transaction Record=${beautify(transaction)}`);
     if (transaction && transaction.length > 0) {
-      const [plan] = await Plan.get({ _id: transaction[0].plan_id });
-      logger.log(level.info, `Plan Record=${beautify(plan)}`);
+      // plan = childPlan
+      const [childPlan] = await Plan.get({ _id: transaction[0].plan_id });
+      const childPlanAmount = childPlan.amount;
+      logger.log(level.info, `Plan Record=${beautify(childPlan)}`);
       const ref = await ReferUser.get({ child: user_id });
       logger.log(level.info, `Ref Record=${beautify(ref)}`);
       if (ref && ref.length > 0) {
         const parentId = ref[0].parent;
         logger.log(level.info, `parentId Record=${parentId}`);
-        const [parent] = await User.get({ _id: parentId });
-        logger.log(level.info, `parent Record=${beautify(parent)}`);
-        const oldBalance = parent?.account_balance;
-        logger.log(level.info, `parent Old Balance Record=${oldBalance}`);
-        const newBalance = parent?.account_balance + (plan.amount * COMMISION_PERCENTAGE.PARENT / 100)
-        logger.log(level.info, `parent New Balance Record=${newBalance}`);
-        const updatedParent = await User.update({ _id: parentId }, { account_balance: newBalance })
-        logger.log(level.info, `updated-Parent-Percent Old Balance: ${oldBalance}, New Balance: ${newBalance}`);
-        logger.log(level.info, `updated-Parent-Percent $updated=${beautify(updatedParent)}`);
-        const grandRef = await ReferUser.get({ child: parentId })
-        logger.log(level.info, `GrandeRef Record=${beautify(grandRef)}`);
-        if (grandRef && grandRef.length > 0) {
-          const grandparentId = grandRef[0].parent;
-          logger.log(level.info, `GrandeRef Parent Id Record=${grandparentId}`);
-          const [grandParent] = await User.get({ _id: grandparentId });
-          logger.log(level.info, `GrandeRef Parent Record=${beautify(grandParent)}`);
-          const oldGrandBalance = grandParent?.account_balance;
-          logger.log(level.info, `GrandeRef Parent Old balance Record=${beautify(oldGrandBalance)}`);
-          const newGrandBalance = grandParent.account_balance + (plan.amount * COMMISION_PERCENTAGE.GRAND_PARENT / 100)
-          logger.log(level.info, `GrandeRef Parent New balance Record=${beautify(newGrandBalance)}`);
-          const updatedGrandParent = await User.update({ _id: grandparentId }, { account_balance: newGrandBalance })
-          logger.log(level.info, `updated-Grand-Parent-Percent Old Balance: ${oldGrandBalance}, New Balance: ${newGrandBalance}, Updated: ${beautify(updatedGrandParent)}`);
-          logger.log(level.info, `updated-Grand-Parent-Percent Updated: ${beautify(updatedGrandParent)}`);
+        // need parent plan
+        const [parent] = await User.get({ _id: parentId }, null, null, { path: 'transaction', populate: { path: 'plan' } });
+        const parentPlanAmount = parent?.transaction?.plan?.amount;
+        if (parent && parentPlanAmount) {
+          logger.log(level.info, `parent Record=${beautify(parent)}`);
+          logger.log(level.info, `parent Plan Amount=${beautify(parentPlanAmount)}`);
+
+          const oldBalance = parent?.account_balance;
+          logger.log(level.info, `parent Old Balance Record=${oldBalance}`);
+
+          var baseAmount = childPlanAmount;
+          if (childPlanAmount > parentPlanAmount) {
+            baseAmount = parentPlanAmount;
+          }
+
+          const newBalance = parent?.account_balance + (baseAmount * COMMISION_PERCENTAGE.PARENT / 100)
+          logger.log(level.info, `parent New Balance Record=${newBalance}`);
+
+          const updatedParent = await User.update({ _id: parentId }, { account_balance: newBalance })
+          logger.log(level.info, `updated-Parent-Percent Old Balance: ${oldBalance}, New Balance: ${newBalance}`);
+          logger.log(level.info, `updated-Parent-Percent $updated=${beautify(updatedParent)}`);
+          const grandRef = await ReferUser.get({ child: parentId })
+          logger.log(level.info, `GrandeRef Record=${beautify(grandRef)}`);
+          if (grandRef && grandRef.length > 0) {
+            const grandparentId = grandRef[0].parent;
+            logger.log(level.info, `GrandeRef Parent Id Record=${grandparentId}`);
+            const [grandParent] = await User.get({ _id: grandparentId }, null, null, { path: 'transaction', populate: { path: 'plan' } });
+            const grandParentPlanAmount = grandParent?.transaction?.plan?.amount;
+            logger.log(level.info, `GrandeRef Parent Record=${beautify(grandParent)}`);
+            logger.log(level.info, `parent Plan Amount=${beautify(grandParentPlanAmount)}`);
+            if (grandParent && grandParentPlanAmount) {
+              const oldGrandBalance = grandParent?.account_balance;
+              logger.log(level.info, `GrandeRef Parent Old balance Record=${beautify(oldGrandBalance)}`);
+              var baseAmount = childPlanAmount;
+              if (childPlanAmount > grandParentPlanAmount) {
+                baseAmount = grandParentPlanAmount;
+              }
+              const newGrandBalance = grandParent.account_balance + (baseAmount * COMMISION_PERCENTAGE.GRAND_PARENT / 100)
+              logger.log(level.info, `GrandeRef Parent New balance Record=${beautify(newGrandBalance)}`);
+              const updatedGrandParent = await User.update({ _id: grandparentId }, { account_balance: newGrandBalance })
+              logger.log(level.info, `updated-Grand-Parent-Percent Old Balance: ${oldGrandBalance}, New Balance: ${newGrandBalance}, Updated: ${beautify(updatedGrandParent)}`);
+              logger.log(level.info, `updated-Grand-Parent-Percent Updated: ${beautify(updatedGrandParent)}`);
+            }
+          }
         }
+      } else {
+        logger.log(level.error, `Transaction verification error error=Parent Not Found`);
       }
     } else {
+      logger.log(level.error, `Transaction verification error error=Transaction Not Found`);
       return null;
     }
   } catch (error) {
-    console.log('Transaction verification error', error);
+    logger.log(level.error, `Transaction verification error error=${beautify(error)}`);
   }
 }
