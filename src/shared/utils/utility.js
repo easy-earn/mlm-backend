@@ -6,7 +6,7 @@ import shortid from "shortid";
 import pkg from "lodash";
 import mongoose from "mongoose";
 import nodemailer from "nodemailer";
-import { VerifyEmailHtml, ForgotPasswordHtml, TrialCodeEmailHtml } from "./templates.js";
+import { VerifyEmailHtml, ForgotPasswordHtml, TrialCodeEmailHtml, AmountWithdrawHtml } from "./templates.js";
 import messages from "../constant/messages.const.js";
 import httpStatus from "http-status";
 const { _ } = pkg;
@@ -293,7 +293,7 @@ export const toObjectId = (id) => {
 
 export const SendEmail = (email, email_type, OTP = null, NAME = null) => {
   return new Promise(async (resolve, reject) => {
-    console.log('FROM_MAIL_ID', process.env.FROM_MAIL_ID, process.env.FROM_MAIL_PWD, process.env.SEND_EMAIL_FROM_TEXT);
+    logger.log(level.info, `FROM_MAIL_ID ${process.env.FROM_MAIL_ID}, ${process.env.SEND_EMAIL_FROM_TEXT}`);
     var transporter = nodemailer.createTransport({
       transport: "SMTP",
       host: "smtp.gmail.com",
@@ -323,12 +323,28 @@ export const SendEmail = (email, email_type, OTP = null, NAME = null) => {
           reject(error);
         }
       );
-    } else if (email_type = "forgot_password") {
+    } else if (email_type == "forgot_password") {
       ForgotPasswordHtml(NAME, OTP).then((data) => {
         var mailOptions = {
           from: process.env.SEND_EMAIL_FROM_TEXT,
           to: email,
           subject: "Your reset password link.",
+          html: data,
+        };
+
+        const mail = transporter.sendMail(mailOptions);
+        return resolve(mail);
+      },
+        (error) => {
+          reject(error);
+        }
+      );
+    } else if (email_type == "amount_withdrawed") {
+      AmountWithdrawHtml(NAME, OTP).then((data) => {
+        var mailOptions = {
+          from: process.env.SEND_EMAIL_FROM_TEXT,
+          to: email,
+          subject: "Your amount withdrawal successfully.",
           html: data,
         };
 
@@ -403,7 +419,7 @@ export const parseSearchOptions = async (option) => {
   var filter = {};
   var ANDArray = [];
   var ORArray = [];
-  console.log('option', beautify(option));
+  logger.log(level.info, `parseSearchOptions option= ${beautify(option)}`)
   if ('search' in option) {
     if ('searchBy' in option && option.searchBy == 'AND') {
       ANDArray = await calculateFilterArrayFromSearch(option.search, ANDArray);

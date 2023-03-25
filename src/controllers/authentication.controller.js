@@ -15,22 +15,30 @@ const { _ } = pkg;
 const auth = new JWTAuth();
 const asset_url = `${APP_CONST.ASSET_URL}`;
 
-export const login = async (request, response) => {
+export const login = async (req, res) => {
   try {
-    let data = request.body;
+    let data = req.body;
     logger.log(level.info, `Login Data: ${beautify(data)}`);
 
-    const filter = { email: data.email, password: data.password, status: 1 };
+    const filter = { email: data.email, password: data.password };
     let userDoc = await userExist(filter);
     if (userDoc.length > 0) {
-      const responseData = await generateToken(response, data.email, userDoc[0]);
-      okResponse(response, messages.login_success, responseData);
+      if (userDoc[0].status === 1) {
+        if (userDoc[0].is_verified == true) {
+          const responseData = await generateToken(res, data.email, userDoc[0]);
+          return okResponse(res, messages.login_success, responseData);
+        } else {
+          return badRequestError(res, messages.user_not_verified, { is_verified: false }, httpStatus.NOT_FOUND);
+        }
+      } else {
+        return badRequestError(res, messages.blocked_user, { status: false }, httpStatus.NOT_FOUND);
+      }
     } else {
-      return badRequestError(response, messages.email_password_not_match, null, httpStatus.NOT_FOUND);
+      return badRequestError(res, messages.email_password_not_match, null, httpStatus.NOT_FOUND);
     }
   } catch (error) {
     logger.log(level.error, `Login : Internal server error : ${beautify(error.message)}`)
-    return internalServerError(response, error.message)
+    return internalServerError(res, error.message)
   }
 };
 
@@ -68,7 +76,7 @@ export const signUp = async (request, response) => {
         SendEmail(data.email, "verification", OTP, data?.name || 'There');
       }
       delete resp['confirmation_otp'];
-      console.log('data', JSON.parse(JSON.stringify(data)));
+      logger.log(level.info, `data= ${JSON.parse(JSON.stringify(data))}`);
       await generateReferenceLink(data?.parent_code, newUser?.referral_code, resp?._id);
 
       const returnData = await generateToken(response, resp.email, resp);
@@ -368,7 +376,9 @@ async function generateToken(response, email, userDoc = null) {
  * */
 async function generateReferenceLink(parent_code, referral_code, new_user_id) {
   // Find Parent By It's Refferal_code field
-  console.log('parentUser', parent_code, 'refferal', referral_code);
+  logger.log(level.info, `generateReferenceLink parentUser=${parent_code}`);
+  logger.log(level.info, `generateReferenceLink referral_code=${referral_code}`);
+  logger.log(level.info, `generateReferenceLink new_user_id=${new_user_id}`);
   // const filter = { refferal_code: parent_code };
   const filter = {
     referral_code: {
@@ -378,18 +388,16 @@ async function generateReferenceLink(parent_code, referral_code, new_user_id) {
       $eq: parent_code // check if myKey is equal to 'myValue'
     }
   }
-  console.log('filter', filter);
+  logger.log(level.info, `generateReferenceLink filter=${beautify(filter)}`);
   const parentUser = await User.get(filter);
-  console.log('parentUser', parentUser);
+  logger.log(level.info, `generateReferenceLink parentUser=${beautify(parentUser)}`);
   if (parentUser && parentUser?.length > 0) {
-    console.log('parentUser id', parentUser[0]._id, new_user_id);
     const new_link = {
       parent: parentUser[0]._id,
       child: new_user_id,
       parent_code: parent_code,
       child_code: referral_code
     }
-    console.log('new_link', new_link);
     await ReferUser.add(new_link);
   }
 }

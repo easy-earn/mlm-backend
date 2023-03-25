@@ -91,7 +91,32 @@ const schema = {
     trim: true,
     default: 0
   },
+  account_holder_name: {
+    type: String,
+    required: false,
+    trim: true,
+    default: null
+  },
+  account_number: {
+    type: Number,
+    required: false,
+    trim: true,
+    default: null
+  },
+  ifsc_code: {
+    type: String,
+    required: false,
+    trim: true,
+    default: null
+  },
   // Used for forgot password
+  withdraw_request: {
+    type: Boolean,
+    required: false,
+    default: false,
+    trim: true,
+    select: false
+  },
   forgot_otp: {
     type: String,
     default: "",

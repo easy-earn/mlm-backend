@@ -45,6 +45,19 @@ export const ForgotPasswordHtml = (NAME, OTP) => {
     });
 };
 
+export const AmountWithdrawHtml = (NAME, AMOUNT) => {
+    return new Promise((resolve, reject) => {
+        ejs.renderFile(path.join(__dirname, "src", "views", "/amountWithdrawalEmailTemplate.ejs"), { NAME, AMOUNT }, (err, data) => {
+            if (err) {
+                logger.log(level.error, `Amount Withdrawal Template error : ${JSON.stringify(err)}`)
+                reject(err)
+            } else {
+                resolve(data)
+            }
+        });
+    });
+};
+
 export const UserReportHtml = (HOST, OBJ) => {
     return new Promise((resolve, reject) => {
         ejs.renderFile(path.join(__dirname, "src", "views", "/report.ejs"), { HOST, OBJ }, (err, data) => {

@@ -39,21 +39,35 @@ export const upiPurchase = async (req, res) => {
     const isValid = await upiTransactionValidator(data);
     console.log('isValid', isValid);
     const [plan] = await Plan.get({ _id: data.plan_id });
-    if (plan) {
-      const transaction = {
-        user_id: req['currentUserId'],
-        upi: data?.upi,
-        utr: data?.utr,
-        plan_id: plan._id,
-        transaction_type: TRANSACTION_TYPE.UPI,
-        is_verified: TRANSACTION_VERIFIED_STATUS.FALSE
-      }
-      const newTransaction = await UserTransaction.add(transaction);
-      if (newTransaction) {
-        return okResponse(res, messages.created.replace("{dynamic}", 'Transaction'), newTransaction)
+    const [existingTransaction] = await UserTransaction.get({ user_id: req['currentUserId'] });
+    const bankbody = {
+      account_holder_name: data?.account_holder_name,
+      account_number: data?.bank_account_number,
+      ifsc_code: data?.ifsc_code
+    }
+    const updatedUser = await User.update({ _id: req['currentUserId'] }, bankbody);
+    logger.log(level.info, `upi-purchase bank detial updated: ${beautify(updatedUser)}`);
+    if (!existingTransaction) {
+      if (plan) {
+        const transaction = {
+          user_id: req['currentUserId'],
+          upi: data?.upi,
+          utr: data?.utr,
+          plan_id: plan._id,
+          transaction_type: TRANSACTION_TYPE.UPI,
+          is_verified: TRANSACTION_VERIFIED_STATUS.FALSE
+        }
+        const newTransaction = await UserTransaction.add(transaction);
+        if (newTransaction) {
+          return okResponse(res, messages.created.replace("{dynamic}", 'Transaction'), newTransaction)
+        } else {
+          return internalServerError(res);
+        }
       } else {
-        return badRequestError(res);
+        return badRequestError(res, messages.not_exist.repeat("{dynamic}", 'Plan'));
       }
+    } else {
+      return badRequestError(res, messages.plan_already_purchased);
     }
   } catch (error) {
     logger.log(level.error, `upiPurchase : Internal server error : ${beautify(error.message)}`)
@@ -65,7 +79,6 @@ export const getMyProfile = async (req, res) => {
   try {
     logger.log(level.info, `getMyProfile`);
     const [user] = await User.get({ _id: req['currentUserId'] }, null, null, { path: 'transaction', populate: { path: 'plan_id' } });
-    console.log('user', user);
     if (user) {
       const [pendingTransaction] = await UserTransaction.get({ user_id: req['currentUserId'] })
       const object = JSON.parse(JSON.stringify(user));
@@ -81,7 +94,6 @@ export const getMyProfile = async (req, res) => {
       }
       delete object.forgot_otp;
       delete object.confirmation_otp;
-      console.log('object', object);
       return okResponse(res, messages.record_fetched, JSON.parse(JSON.stringify(object)))
     } else {
       return badRequestError(res, messages.user_missing);
@@ -108,6 +120,20 @@ export const getMyChildUsers = async (req, res) => {
     return okResponse(res, messages.record_fetched, childUsers, count)
   } catch (error) {
     logger.log(level.error, `getMyChildUsers : Internal server error : ${beautify(error.message)}`)
+    return internalServerError(res, error.message)
+  }
+}
+
+export const sendWithdrawalRequest = async (req, res) => {
+  try {
+    const updated = await User.update({ _id: req['currentUserId'] }, { withdraw_request: true });
+    if (updated) {
+      return okResponse(res, messages.email_sent, null);
+    } else {
+      return internalServerError(res, messages.internal_server_error);
+    }
+  } catch (error) {
+    logger.log(level.error, `sendWithdrawalRequest : Internal server error : ${beautify(error.message)}`)
     return internalServerError(res, error.message)
   }
 }

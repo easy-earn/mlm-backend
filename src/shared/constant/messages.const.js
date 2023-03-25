@@ -10,7 +10,7 @@ export default {
   user_already_verified: "Already Verified.",
   user_verified_success: "Email Verified.",
   otp_expired: "OTP Expired Or Wrong OTP Or Account Not Exist",
-  email_password_not_match: "Email or Password does not Match Or Verify Your Account.",
+  email_password_not_match: "Credentials not match",
   email_phone_missing: "Email or Phone Number is Missing.",
   login_failed: "Login Failed",
   already_exist: "{dynamic} Already Exist.",
@@ -50,5 +50,11 @@ export default {
   password_already_updated: "Password Already Updated",
   wrong_plan_amount: "You are trying to purchase invalid plan.",
   transaction_not_verified: "Transaction Not Verified.",
-  transaction_user_not_vefiried: "Transaction is verified but user is not verified."
+  transaction_user_not_vefiried: "Transaction is verified but user is not verified.",
+  plan_already_purchased: "One plan already purchased.",
+  user_not_verified: "User is not verified.",
+  blocked_user: "User is blocked.",
+  transaction_not_withdraw: "Amount not withdrawed.",
+  amount_withdrawen: "Amount withdrawen.",
+  not_sufficient_amount: "Amount is not sufficient to withdraw."
 }

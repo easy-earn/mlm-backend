@@ -15,6 +15,13 @@
         "minLength": "UTR Number is required."
       }
     },
+    "account_holder_name": {
+      "type": "string",
+      "minLength": 1,
+      "errorMessage": {
+        "minLength": "Account holder name is required."
+      }
+    },
     "bank_account_number": {
       "type": "number",
       "minLength": 1,
@@ -40,6 +47,7 @@
   "required": [
     "upi",
     "utr",
+    "account_holder_name",
     "bank_account_number",
     "ifsc_code",
     "plan_id"

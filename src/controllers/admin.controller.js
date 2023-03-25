@@ -13,6 +13,7 @@ import ReferUser from "../models/refer_user.model.js";
 import { COMMISION_PERCENTAGE, TRANSACTION_VERIFIED_STATUS } from "../shared/constant/types.const.js";
 import { constants } from "../shared/constant/application.const.js";
 import httpStatus from "http-status";
+import WithdrawTransaction from "../models/withdraw-transaction.model.js";
 const { _ } = pkg;
 const __dirname = Path.resolve();
 
@@ -48,7 +49,6 @@ export const signUp = async (req, res) => {
         delete result['confirmation_otp'];
         delete result['forgot_otp'];
         delete result['password'];
-        console.log('data', JSON.parse(JSON.stringify(result)));
         return okResponse(res, messages.admin_registered_success, result);
 
       }, (error) => {
@@ -393,6 +393,43 @@ export const verifyUserPurchase = async (req, res) => {
     }
   } catch (error) {
     logger.log(level.error, `verifyUserPurchase Error: ${beautify(error.message)}`);
+    return internalServerError(res, error)
+  }
+}
+
+export const withdrawBalance = async (req, res) => {
+  var transaction;
+  try {
+    const { body } = req;
+    const { user_id } = body;
+    logger.log(level.info, `withdrawBalance body=${beautify(body)}`);
+
+    const filter = { _id: user_id, is_verified: TRANSACTION_VERIFIED_STATUS.TRUE };
+    const isExist = await returnOnNotExist(User, filter, res, "Verified User", messages.already_exist.replace("{dynamic}", "Verified User"));
+    if (isExist) return;
+
+    const [user] = await User.get(filter);
+    const backup_amount = user?.account_balance;
+    if (user.account_balance >= constants.WITHDRAW_LIMIT) {
+      transaction = await WithdrawTransaction.add({ user_id: user_id, amount: user.account_balance });
+      if (transaction) {
+        const updated = User.update(filter, { withdraw_request: false, account_balance: 0 });
+        if (updated) {
+          await SendEmail(user.email, "amount_withdrawed", backup_amount, `${user?.name}` || 'There');
+          return okResponse(res, messages.amount_withdrawen);
+        } else {
+          await WithdrawTransaction.delete({ _id: transaction._id });
+          return badRequestError(res, messages.transaction_not_withdraw);
+        }
+      } else {
+        return badRequestError(res, messages.internal_server_error);
+      }
+    } else {
+      return badRequestError(res, messages.not_sufficient_amount, { not_sufficient_amount: true });
+    }
+  } catch (error) {
+    if (transaction) await WithdrawTransaction.delete({ _id: transaction._id });
+    logger.log(level.error, `withdrawBalance Error: ${beautify(error.message)}`);
     return internalServerError(res, error)
   }
 }
