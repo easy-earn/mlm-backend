@@ -49,7 +49,7 @@ const modelName = "UserTransaction";
 const UserTransactionSchema = DBOperation.createSchema(modelName, schema);
 
 UserTransactionSchema.virtual("user", {
-  ref: 'UserTransaction',
+  ref: 'User',
   localField: 'user_id',
   foreignField: '_id',
   justOne: true

@@ -9,8 +9,8 @@ const Path = {
   verifyOTP: "/verifyOTP",
   resendOTP: "/resendOTP",
   forgotPassword: "/forgot-password",
-  userByID: "/user",
   updatePassword: "/update-password",
+  userByID: "/user",
   updateUserDetail: "/user"
 };
 

@@ -22,6 +22,7 @@ export default {
   invalid_input: "Invalid Input",
   bad_request: "Bad Request",
   email_sent: "Email Sent, Please Check Your Email.",
+  mail_not_sent: "Email Not Sent, Please Try Again.",
   phone_exists: "Phone Number Exist.",
   invalid_phone_number: "Invalid Phone Number.",
   invalid_country_code: "Invalid Country Code.",

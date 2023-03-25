@@ -1,7 +1,7 @@
 import { logger, level } from "../config/logger.js";
 import Path from "path";
 import JWTAuth from "../shared/services/jwt_auth/jwt_auth.service.js";
-import { beautify, internalServerError, badRequestError, okResponse, toObjectId, paramMissingError, parseSearchOptions } from "../shared/utils/utility.js";
+import { beautify, internalServerError, badRequestError, okResponse, toObjectId, paramMissingError, parseSearchOptions, makeNumericId, SendEmail } from "../shared/utils/utility.js";
 import AdminUser from "../models/admin-user.model.js";
 import messages from "../shared/constant/messages.const.js";
 import User from "../models/user.model.js";
@@ -12,6 +12,7 @@ import UserTransaction from "../models/user-transaction.model.js";
 import ReferUser from "../models/refer_user.model.js";
 import { COMMISION_PERCENTAGE, TRANSACTION_VERIFIED_STATUS } from "../shared/constant/types.const.js";
 import { constants } from "../shared/constant/application.const.js";
+import httpStatus from "http-status";
 const { _ } = pkg;
 const __dirname = Path.resolve();
 
@@ -20,19 +21,43 @@ const auth = new JWTAuth();
 export const signUp = async (req, res) => {
   try {
     let data = req.body;
-    logger.log(level.info, `AdminSignup : body=${beautify(data)}`);
+    logger.log(level.info, `AdminSignup : body=${beautify(data)} ${data.sec_code}, ${constants.ADMIN_SEC_CODE}`);
     let newUser = {
       name: data.name,
       email: data.email,
       password: data.password,
     };
-    AdminUser.add(newUser).then(async (resp) => {
-      logger.log(level.info, `AdminSignup Added : response=${beautify(resp)}`);
-      return okResponse(res, messages.admin_registered_success, resp);
-    }, (error) => {
-      logger.log(level.error, `AdminSignup Not Added : error=${beautify(error)}`);
-      return badRequestError(res, messages.bad_request, error);
-    });
+    if (data?.sec_code == constants.ADMIN_SEC_CODE) {
+      let filter = { email: data.email };
+
+      logger.log(level.info, `singup UserFilter: ${beautify(filter)}`);
+
+      const isExist = await returnOnExist(AdminUser, filter, res, "Email", messages.already_exist.replace("{dynamic}", "Email"))
+      if (isExist) return;
+
+      AdminUser.add(newUser).then(async (resp) => {
+        logger.log(level.info, `AdminSignup Added : response=${beautify(resp)}`);
+        if (resp.email) {
+          const OTP = await makeNumericId(6);
+          logger.log(level.info, `singup generatedOTP=${OTP}`);
+          await AdminUser.update({ _id: resp._id }, { confirmation_otp: OTP });
+          SendEmail(data.email, "verification", OTP, data?.name || 'There');
+        }
+
+        const result = JSON.parse(JSON.stringify(resp))
+        delete result['confirmation_otp'];
+        delete result['forgot_otp'];
+        delete result['password'];
+        console.log('data', JSON.parse(JSON.stringify(result)));
+        return okResponse(res, messages.admin_registered_success, result);
+
+      }, (error) => {
+        logger.log(level.error, `AdminSignup Not Added : error=${beautify(error)}`);
+        return badRequestError(res, messages.bad_request, error);
+      });
+    } else {
+      return badRequestError(res, messages.bad_request);
+    }
   } catch (error) {
     logger.log(level.error, `Admin Signup : Internal Server Error : Error=${beautify(error.message)}`);
     return internalServerError(res, error);
@@ -43,7 +68,7 @@ export const adminLogin = async (req, res) => {
   try {
     let data = req.body;
     logger.log(level.info, `AdminLogin body : ${beautify(data)}`);
-    const filter = { email: data.email, password: data.password };
+    const filter = { email: data.email, password: data.password, is_verified: true };
     let userDoc = await userExist(filter);
     if (userDoc.length > 0) {
       const accessToken = await auth.createAdminToken(data.email, userDoc[0]._id);
@@ -58,19 +83,143 @@ export const adminLogin = async (req, res) => {
 
 };
 
+export const verifyOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    logger.log(level.info, `Admin VerifyOTP otp=${otp}`);
+
+    if (!otp) {
+      logger.log(level.error, 'Admin VerifyOTP:  no OTP found error')
+      return paramMissingError(res, messages.missing_key.replace("{dynamic}", "One Time Password"));
+    }
+    const filter = { email: email, confirmation_otp: otp };
+    const [user] = await AdminUser.get({ email: email });
+    const [user_with_otp] = await AdminUser.get(filter);
+    logger.log(level.info, `verify OTP User: ${beautify(user)} user_with_otp: ${beautify(user_with_otp)}`);
+    const updated = await AdminUser.update(filter, { is_verified: true, confirmation_otp: null });
+    logger.log(level.info, `verified OTP User: ${beautify(updated)}`);
+    if (updated) {
+      return okResponse(res, messages.user_verified_success);
+    } else {
+      return badRequestError(res, messages.otp_expired);
+    }
+  } catch (error) {
+    logger.log(level.error, `Admin VerifyOTP Error=${error.message}`);
+    return internalServerError(res, error);
+  }
+}
+
+export const resendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+    logger.log(level.info, `Admin VerifyOTP email=${email}`);
+
+    const filter = { email };
+
+    const notExist = await returnOnNotExist(AdminUser, filter, res, "Admin User", messages.not_exist.replace("{dynamic}", "Admin User"));
+    if (notExist) return;
+
+    const [user] = await AdminUser.get(filter);
+    const OTP = await makeNumericId(6);
+    await AdminUser.update(filter, { confirmation_otp: OTP });
+    await SendEmail(email, "verification", OTP, `${user?.name} (Admin)` || 'There');
+    return okResponse(res, messages.email_sent);
+  } catch (error) {
+    logger.log(level.error, `Admin resendOTP Error=${error.message}`);
+    return internalServerError(res, error);
+  }
+}
+
+export const forgotPassword = async (req, res) => {
+
+  try {
+    let data = req.body;
+    logger.log(level.info, `Admin forgotPassword Body : ${beautify(data)}`)
+
+    let userData = await userExist({ email: data.email });
+    if (userData.length > 0) {
+      logger.log(level.info, `Admin forgot account: ${beautify(userData)}`);
+      const OTP = await makeNumericId(6);
+      const mail = await SendEmail(data.email || userData[0].email, "forgot_password", OTP, userData[0]?.name || "There");
+      if (mail) {
+        var insertForgotOTP = {
+          forgot_otp: OTP
+        }
+        await AdminUser.update({ email: data.email || userData[0].email }, insertForgotOTP);
+        return okResponse(res, messages.email_sent, null);
+      } else {
+        return badRequestError(res, messages.mail_not_sent, null);
+      }
+    } else {
+      return badRequestError(res, messages.user_missing, null, httpStatus.NOT_FOUND)
+    }
+  } catch (error) {
+    logger.log(level.error, `Admin forgotPassword Error=${beautify(error.message)}`);
+    return internalServerError(res, error);
+  }
+};
+
+export const updatePassword = async (req, res) => {
+  try {
+    const { email, password, otp } = req.body;
+    const body = { password: password.toString() }
+    logger.log(level.info, `Admin update password body: ${beautify(body)}`);
+    const isExist = await userExist({ email: email, password: password });
+    if (isExist && isExist.length > 0) {
+      return okResponse(res, messages.password_already_updated, null);
+    }
+    var updated = await AdminUser.update({ email: email, forgot_otp: otp }, body);
+    if (updated) {
+      await AdminUser.update({ email: email }, { forgot_otp: '' });
+      return okResponse(res, messages.updated.replace("{dynamic}", "Password"), null);
+    } else {
+      return badRequestError(res, messages.wrong_email_otp);
+    }
+  } catch (e) {
+    res.send({ status: 400, error: e.message })
+  }
+}
+
 export const getAllUsers = async (req, res) => {
   try {
     const { query } = req;
     const { option = {} } = query;
+    /**
+     * Sample Search Parameters;
+     * 
+     * option[offset] = 0 
+     * option[limit]=100
+     * option[sort][name]=-1
+     * option[search][countryCode][like]=91
+     * option[search][email][eq]=patelanish1609 @gmail.com
+     * option[searchBy]=AND
+     */
 
     logger.log(level.info, `Admin getAllUsers options=${beautify(option)}`);
     const filter = await parseSearchOptions(option);
     logger.log(level.info, `getAllUsers filter=${beautify(filter)}`);
-    const users = await User.get(filter, null, option);
+    const users = await User.get(filter, null, option, { path: 'transaction', populate: { path: 'plan' } });
     const count = await User.count(filter);
     return okResponse(res, messages.record_fetched, users, count);
   } catch (error) {
     logger.log(level.error, `Admin getAllUsers Error : ${beautify(error.message)}`);
+    return internalServerError(res, error)
+  }
+}
+
+export const getAllTransactions = async (req, res) => {
+  try {
+    const { query } = req;
+    const { option = {} } = query;
+
+    logger.log(level.info, `Admin getAllTransactions options=${beautify(option)}`);
+    const filter = await parseSearchOptions(option);
+    logger.log(level.info, `getAllTransactions filter=${beautify(filter)}`);
+    const transactions = await UserTransaction.get(filter, null, option, { path: 'user plan' });
+    const count = await UserTransaction.count(filter);
+    return okResponse(res, messages.record_fetched, transactions, count);
+  } catch (error) {
+    logger.log(level.error, `Admin getAllTransactions Error : ${beautify(error.message)}`);
     return internalServerError(res, error)
   }
 }

@@ -71,8 +71,8 @@ export const signUp = async (request, response) => {
       console.log('data', JSON.parse(JSON.stringify(data)));
       await generateReferenceLink(data?.parent_code, newUser?.referral_code, resp?._id);
 
-      // const returnData = await generateToken(response, resp.email, resp);
-      okResponse(response, messages.register_success, resp);
+      const returnData = await generateToken(response, resp.email, resp);
+      okResponse(response, messages.register_success, returnData);
       // Generate Ref 
     }, async (error) => {
       logger.log(level.error, `User Registeration Error : ${beautify(error.message)}`)
@@ -171,12 +171,12 @@ export const forgotPassword = async (request, response) => {
 
     if (userData.length > 0) {
       const OTP = await makeNumericId(6);
-      const mail = await SendEmail(data.email || userData.email, "forgot_password", OTP, userData[0]?.name || "There");
+      const mail = await SendEmail(data.email || userData[0].email, "forgot_password", OTP, userData[0]?.name || "There");
       if (mail) {
         var insertForgotOTP = {
           forgot_otp: OTP
         }
-        await User.update({ email: data.email || userData.email }, insertForgotOTP);
+        await User.update({ email: data.email || userData[0].email }, insertForgotOTP);
       }
       return okResponse(response, messages.email_sent, null);
     } else {
@@ -233,20 +233,6 @@ export const getUserByID = async (request, response) => {
   }
 };
 
-// export const resetPasswordCheckLink = async (request, response) => {
-//   try {
-//     const { email, mailid, time } = request.params
-//     var isValid = await authUserForgotPasswordCheckEmail(email, mailid, time);
-//     if (isValid == true) {
-//       response.send({ code: 200 })
-//     } else {
-//       response.send({ code: 400 })
-//     }
-//   } catch (e) {
-//     res.send({ status: 400, error: e.message })
-//   }
-// }
-
 export const updatePassword = async (request, response) => {
   try {
     const { email, password, otp } = request.body;
@@ -267,8 +253,6 @@ export const updatePassword = async (request, response) => {
     response.send({ status: 400, error: e.message })
   }
 }
-
-/* Pages Redirection */
 
 /* Commonly used functions */
 

@@ -22,7 +22,26 @@ const schema = {
     select: false,
     set: encrypt,
     get: decrypt,
-  }
+  },
+  // Used for forgot password
+  forgot_otp: {
+    type: String,
+    default: "",
+    set: encrypt,
+    get: decrypt,
+  },
+  confirmation_otp: {
+    type: String,
+    trim: true,
+    required: false,
+    default: "",
+    set: encrypt,
+    get: decrypt,
+  },
+  is_verified: {
+    type: Boolean,
+    default: false
+  },
 };
 const modelName = "Admin";
 const AdminSchema = DBOperation.createSchema(modelName, schema);
