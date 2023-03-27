@@ -485,6 +485,83 @@ async function updateTransactionIdIntoUser(user_id, transaction_id, transaction_
 //   }
 // }
 
+
+// No Cashback Flow + Dynamic Profit
+// async function calculateCommisionForParent(user_id) {
+//   try {
+//     logger.log(level.info, `Transaction verification function userID=${user_id}`);
+//     const transaction = await UserTransaction.get({ is_verified: TRANSACTION_VERIFIED_STATUS.TRUE, user_id: user_id })
+//     logger.log(level.info, `Transaction Record=${beautify(transaction)}`);
+//     if (transaction && transaction.length > 0) {
+//       // plan = childPlan
+//       const [childPlan] = await Plan.get({ _id: transaction[0].plan_id });
+//       const childPlanAmount = childPlan.amount;
+//       logger.log(level.info, `Plan Record=${beautify(childPlan)}`);
+//       const ref = await ReferUser.get({ child: user_id });
+//       logger.log(level.info, `Ref Record=${beautify(ref)}`);
+//       if (ref && ref.length > 0) {
+//         const parentId = ref[0].parent;
+//         logger.log(level.info, `parentId Record=${parentId}`);
+//         // need parent plan
+//         const [parent] = await User.get({ _id: parentId }, null, null, { path: 'transaction', populate: { path: 'plan' } });
+//         const parentPlanAmount = parent?.transaction?.plan?.amount;
+//         if (parent && parentPlanAmount) {
+//           logger.log(level.info, `parent Record=${beautify(parent)}`);
+//           logger.log(level.info, `parent Plan Amount=${beautify(parentPlanAmount)}`);
+
+//           const oldBalance = parent?.account_balance;
+//           logger.log(level.info, `parent Old Balance Record=${oldBalance}`);
+
+//           var baseAmount = childPlanAmount;
+//           if (childPlanAmount > parentPlanAmount) {
+//             baseAmount = parentPlanAmount;
+//           }
+//           logger.log(level.info, `Parent BaseAmount Record=${beautify(baseAmount)}`);
+//           const newBalance = parent?.account_balance + (baseAmount * COMMISION_PERCENTAGE.PARENT / 100)
+//           logger.log(level.info, `parent New Balance Record=${newBalance}`);
+
+//           const updatedParent = await User.update({ _id: parentId }, { account_balance: newBalance })
+//           logger.log(level.info, `updated-Parent-Percent Old Balance: ${oldBalance}, New Balance: ${newBalance}`);
+//           logger.log(level.info, `updated-Parent-Percent $updated=${beautify(updatedParent)}`);
+//           const grandRef = await ReferUser.get({ child: parentId })
+//           logger.log(level.info, `GrandeRef Record=${beautify(grandRef)}`);
+//           if (grandRef && grandRef.length > 0) {
+//             const grandparentId = grandRef[0].parent;
+//             logger.log(level.info, `GrandeRef Parent Id Record=${grandparentId}`);
+//             const [grandParent] = await User.get({ _id: grandparentId }, null, null, { path: 'transaction', populate: { path: 'plan' } });
+//             const grandParentPlanAmount = grandParent?.transaction?.plan?.amount;
+//             logger.log(level.info, `GrandeRef Parent Record=${beautify(grandParent)}`);
+//             logger.log(level.info, `parent Plan Amount=${beautify(grandParentPlanAmount)}`);
+//             if (grandParent && grandParentPlanAmount) {
+//               const oldGrandBalance = grandParent?.account_balance;
+//               logger.log(level.info, `GrandeRef Parent Old balance Record=${beautify(oldGrandBalance)}`);
+//               var baseAmount = childPlanAmount;
+//               if (childPlanAmount > grandParentPlanAmount) {
+//                 baseAmount = grandParentPlanAmount;
+//               }
+//               logger.log(level.info, `GrandeRef Parent BaseAmount Record=${beautify(baseAmount)}`);
+//               const newGrandBalance = grandParent.account_balance + (baseAmount * COMMISION_PERCENTAGE.GRAND_PARENT / 100)
+//               logger.log(level.info, `GrandeRef Parent New balance Record=${beautify(newGrandBalance)}`);
+//               const updatedGrandParent = await User.update({ _id: grandparentId }, { account_balance: newGrandBalance })
+//               logger.log(level.info, `updated-Grand-Parent-Percent Old Balance: ${oldGrandBalance}, New Balance: ${newGrandBalance}, Updated: ${beautify(updatedGrandParent)}`);
+//               logger.log(level.info, `updated-Grand-Parent-Percent Updated: ${beautify(updatedGrandParent)}`);
+//             }
+//           }
+//         }
+//       } else {
+//         logger.log(level.error, `Transaction verification error error=Parent Not Found`);
+//       }
+//     } else {
+//       logger.log(level.error, `Transaction verification error error=Transaction Not Found`);
+//       return null;
+//     }
+//   } catch (error) {
+//     logger.log(level.error, `Transaction verification error error=${beautify(error)}`);
+//   }
+// }
+
+
+// Cashback + Dynamic Profit
 async function calculateCommisionForParent(user_id) {
   try {
     logger.log(level.info, `Transaction verification function userID=${user_id}`);
@@ -495,6 +572,14 @@ async function calculateCommisionForParent(user_id) {
       const [childPlan] = await Plan.get({ _id: transaction[0].plan_id });
       const childPlanAmount = childPlan.amount;
       logger.log(level.info, `Plan Record=${beautify(childPlan)}`);
+
+      // Cashback To User 
+      const [user] = await User.get({ _id: user_id });
+      if (user) {
+        const withCashbackAmount = user.account_balance + (childPlanAmount * 10 / 100);
+        await User.update({ _id: user_id }, { account_balance: withCashbackAmount });
+      }
+
       const ref = await ReferUser.get({ child: user_id });
       logger.log(level.info, `Ref Record=${beautify(ref)}`);
       if (ref && ref.length > 0) {
