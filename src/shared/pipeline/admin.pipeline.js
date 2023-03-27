@@ -19,7 +19,7 @@ export const getCountryWiseUserCount = () => {
 }
 
 export const getRewardedUsersPipeline = (maxCount = null) => {
-    logger.log(level.info, `Pipeline getRewardedUsersPipeline`);
+    logger.log(level.info, `Pipeline getRewardedUsersPipeline maxCount = ${maxCount}`);
     // {
     //     '$match': {
     //         'childCount': {
@@ -42,7 +42,7 @@ export const getRewardedUsersPipeline = (maxCount = null) => {
                 }
             }
         },
-        ...insertIf(maxCount, { $match: { 'childCount': { '$gte': maxCount } } }),
+        ...insertIf(maxCount != null, { $match: { 'childCount': { '$gte': maxCount } } }),
         {
             '$lookup': {
                 'from': 'usertransactions',

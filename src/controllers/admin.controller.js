@@ -211,11 +211,11 @@ export const getAllUsers = async (req, res) => {
 export const getRewardedUsers = async (req, res) => {
   try {
     const { query } = req;
-    const { option = {} } = query;
-    logger.log(level.info, `Admin getAllUsers options=${beautify(option)}`);
-    const rewardedUser = await getRewardedUsersPipeline(5000);
-    const users = await User.aggregate(rewardedUser);
-    return okResponse(res, messages.record_fetched, users, count);
+    const { childCount = null } = query;
+    logger.log(level.info, `Admin getAllUsers childCount=${beautify(+childCount)}`);
+    const rewardedUser = await getRewardedUsersPipeline(+childCount || 5000);
+    const users = await User.aggregate(rewardedUser.pipeline);
+    return okResponse(res, messages.record_fetched, users || []);
   } catch (error) {
     logger.log(level.error, `Admin getAllUsers Error : ${beautify(error.message)}`);
     return internalServerError(res, error)
