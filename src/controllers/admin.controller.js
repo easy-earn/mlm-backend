@@ -14,6 +14,7 @@ import { COMMISION_PERCENTAGE, TRANSACTION_VERIFIED_STATUS } from "../shared/con
 import { constants } from "../shared/constant/application.const.js";
 import httpStatus from "http-status";
 import WithdrawTransaction from "../models/withdraw-transaction.model.js";
+import { getRewardedUsersPipeline } from "../shared/pipeline/admin.pipeline.js";
 const { _ } = pkg;
 const __dirname = Path.resolve();
 
@@ -200,6 +201,20 @@ export const getAllUsers = async (req, res) => {
     logger.log(level.info, `getAllUsers filter=${beautify(filter)}`);
     const users = await User.get(filter, null, option, { path: 'transaction', populate: { path: 'plan' } });
     const count = await User.count(filter);
+    return okResponse(res, messages.record_fetched, users, count);
+  } catch (error) {
+    logger.log(level.error, `Admin getAllUsers Error : ${beautify(error.message)}`);
+    return internalServerError(res, error)
+  }
+}
+
+export const getRewardedUsers = async (req, res) => {
+  try {
+    const { query } = req;
+    const { option = {} } = query;
+    logger.log(level.info, `Admin getAllUsers options=${beautify(option)}`);
+    const rewardedUser = await getRewardedUsersPipeline(5000);
+    const users = await User.aggregate(rewardedUser);
     return okResponse(res, messages.record_fetched, users, count);
   } catch (error) {
     logger.log(level.error, `Admin getAllUsers Error : ${beautify(error.message)}`);
