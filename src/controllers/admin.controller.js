@@ -208,6 +208,7 @@ export const getAllUsers = async (req, res) => {
   }
 }
 
+// Not In Use
 export const getRewardedUsers = async (req, res) => {
   try {
     const { query } = req;
@@ -403,6 +404,14 @@ export const verifyUserPurchase = async (req, res) => {
     logger.log(level.info, `verifyUserPurchase Created: ${beautify(transaction_verified)}`);
     if (transaction_verified) {
       const updated = await updateTransactionIdIntoUser(transaction_verified.user_id, transaction_verified._id, transaction_verified);
+      if (updated) {
+        var [ref] = await ReferUser.get({ child: transaction_verified.user_id }, null, null, { path: 'parent_doc' });
+        logger.log(level.info, `parent user: ${beautify(ref)}`);
+        if (ref && ref?.parent_doc) {
+          ref = JSON.parse(JSON.stringify(ref));
+          await User.update({ _id: ref.parent_doc.user_id }, { $inc: { child_count: 1 } })
+        }
+      }
       // await calculateCommisionForParentOld(transaction_verified.user_id);
       await calculateCommisionForParent(transaction_verified.user_id);
       return okResponse(res, messages.updated.replace("{dynamic}", 'Transaction'), { user: updated, transaction: transaction_verified });
@@ -580,6 +589,7 @@ async function updateTransactionIdIntoUser(user_id, transaction_id, transaction_
 
 
 // Cashback + Dynamic Profit
+
 async function calculateCommisionForParent(user_id) {
   try {
     logger.log(level.info, `Transaction verification function userID=${user_id}`);

@@ -447,6 +447,12 @@ function calculateFilterArrayFromSearch(search, array = []) {
         case 'eq':
           array.push({ [key]: value })
           break;
+        case 'gt':
+        case 'gte':
+        case 'lt':
+        case 'lte':
+          array.push({ [key]: { [`$${operator}`]: value } })
+          break;
       }
     }
   });

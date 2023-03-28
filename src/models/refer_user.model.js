@@ -30,9 +30,16 @@ const schema = {
 
 const modelName = "ReferUser";
 const ReferUserSchema = DBOperation.createSchema(modelName, schema);
-ReferUserSchema.virtual("user", {
+ReferUserSchema.virtual("parent_doc", {
   ref: 'User',
-  localField: 'user_id',
+  localField: 'parent',
+  foreignField: '_id',
+  justOne: true
+})
+
+ReferUserSchema.virtual("child_doc", {
+  ref: 'User',
+  localField: 'child',
   foreignField: '_id',
   justOne: true
 })

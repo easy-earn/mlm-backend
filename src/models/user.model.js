@@ -109,6 +109,12 @@ const schema = {
     trim: true,
     default: null
   },
+  child_count: {
+    type: Number,
+    required: false,
+    trim: true,
+    default: 0
+  },
   // Used for forgot password
   withdraw_request: {
     type: Boolean,
