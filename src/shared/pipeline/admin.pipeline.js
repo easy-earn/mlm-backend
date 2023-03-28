@@ -20,64 +20,83 @@ export const getCountryWiseUserCount = () => {
 
 export const getRewardedUsersPipeline = (maxCount = null) => {
     logger.log(level.info, `Pipeline getRewardedUsersPipeline maxCount = ${maxCount}`);
-    // {
-    //     '$match': {
-    //         'childCount': {
-    //             '$gte': maxCount
-    //         }
-    //     }
-    // }
     const pipeline = [
         {
-            '$lookup': {
+            $lookup: {
                 'from': 'referusers',
                 'localField': '_id',
                 'foreignField': 'parent',
-                'as': 'children'
-            }
-        }, {
-            '$addFields': {
-                'childCount': {
-                    '$size': '$children'
-                }
+                'as': 'child_ref'
             }
         },
-        ...insertIf(maxCount != null, { $match: { 'childCount': { '$gte': maxCount } } }),
         {
-            '$lookup': {
+            $unwind: {
+                'path': '$child_ref',
+                'preserveNullAndEmptyArrays': true
+            }
+        },
+        {
+            $lookup: {
+                'from': 'users',
+                'localField': 'child_ref.child',
+                'foreignField': '_id',
+                'as': 'child'
+            }
+        },
+        {
+            $unwind: {
+                'path': '$child',
+                'preserveNullAndEmptyArrays': true
+            }
+        },
+        {
+            $lookup: {
                 'from': 'usertransactions',
-                'localField': 'transaction_id',
+                'localField': 'child.transaction_id',
                 'foreignField': '_id',
                 'as': 'transaction'
             }
-        }, {
-            '$unwind': {
+        },
+        {
+            $unwind: {
                 'path': '$transaction',
-                'preserveNullAndEmptyArrays': true
-            }
-        }, {
-            '$set': {
-                'user_id': '$_id',
-                'transaction.usertransaction_id': '$transaction._id'
-            }
-        }, {
-            '$project': {
-                'children': 0,
-                'password': 0,
-                'forgot_otp': 0,
-                'confirmation_otp': 0,
-                'is_terms_accepted': 0,
-                'referral_code': 0,
-                'withdraw_request': 0,
-                'is_verified': 0,
-                'status': 0
+                'preserveNullAndEmptyArrays': false
             }
         },
         {
-            '$sort': {
-                'childCount': 1
+            $match: {
+                'transaction.is_verified': true
             }
-        }
+        },
+        {
+            $set: {
+                'parent_id': '$child_ref.parent'
+            }
+        },
+        {
+            $group: {
+                '_id': '$parent_id',
+                'parent': { '$first': '$$ROOT' },
+                'child': { '$sum': 1 }
+            }
+        },
+        {
+            $set: {
+                'parent.child_count': '$child'
+            }
+        },
+        {
+            $replaceRoot: {
+                'newRoot': '$parent'
+            }
+        },
+        {
+            $unset: ['child_ref', 'transaction', 'child', 'parent_id', 'forgot_otp', 'confirmation_otp', 'is_terms_accepted', 'referral_code', 'withdraw_request', 'is_verified', 'status']
+        },
+        {
+            $sort: { 'child_count': -1 }
+        },
+        ...insertIf(maxCount != null, { $match: { 'child_count': { '$gte': maxCount } } }),
     ];
     logger.log(level.info, `Pipeline getRewardedUsersPipeline ${beautify(pipeline)}`);
     return { pipeline };
