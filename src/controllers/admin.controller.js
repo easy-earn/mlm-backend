@@ -265,13 +265,14 @@ async function userExist(filter) {
 export const changeUserStatus = async (req, res) => {
   try {
     const { userId } = req.params;
+    const { status } = req.body;
 
     logger.log(level.info, `changeUserStatus Params=${req.params}`);
 
     const isExist = await returnOnNotExist(User, { _id: toObjectId(userId) });
     if (isExist) return;
 
-    await User.update({ _id: toObjectId(userId) }, { status: 0 });
+    await User.update({ _id: toObjectId(userId) }, { status: status });
 
     return okResponse(res, messages.user_status_updated);
   } catch (error) {

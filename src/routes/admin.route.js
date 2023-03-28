@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { signUp, adminLogin, getAllUsers, getAnalytics, updateProfile, getPlan, createPlan, updatePlan, deletePlan, verifyUserPurchase, verifyOTP, resendOTP, forgotPassword, updatePassword, getAllTransactions, withdrawBalance, getRewardedUsers } from "../controllers/admin.controller.js";
+import { signUp, adminLogin, getAllUsers, getAnalytics, updateProfile, getPlan, createPlan, updatePlan, deletePlan, verifyUserPurchase, verifyOTP, resendOTP, forgotPassword, updatePassword, getAllTransactions, withdrawBalance, getRewardedUsers, changeUserStatus } from "../controllers/admin.controller.js";
 import { adminAuthMiddleware } from "../shared/middleweres/auth.middlewere.js";
 
 const routes = new Router();
@@ -27,6 +27,8 @@ const Path = {
 
   verifyUserPurchase: "/verify-user-purchase",
   withdrawBalance: "/withdraw-balance",
+
+  changeUserStatus: "/update-status/:userId",
 };
 
 routes.post(Path.register, signUp);
@@ -43,6 +45,7 @@ routes.get(Path.getAllUsers, getAllUsers);
 routes.get(Path.getAllRewardedUsers, getRewardedUsers);
 routes.get(Path.getAllTransactions, getAllTransactions);
 routes.put(Path.updateProfile, updateProfile);
+routes.put(Path.changeUserStatus, changeUserStatus);
 
 routes.get(Path.getPlan, getPlan);
 routes.post(Path.createPlan, createPlan);
