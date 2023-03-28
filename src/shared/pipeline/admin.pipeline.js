@@ -18,85 +18,131 @@ export const getCountryWiseUserCount = () => {
     return { pipeline };
 }
 
-export const getRewardedUsersPipeline = (maxCount = null) => {
-    logger.log(level.info, `Pipeline getRewardedUsersPipeline maxCount = ${maxCount}`);
+// export const getRewardedUsersPipeline = (maxCount = null) => {
+//     logger.log(level.info, `Pipeline getRewardedUsersPipeline maxCount = ${maxCount}`);
+//     const pipeline = [
+//         {
+//             $lookup: {
+//                 'from': 'referusers',
+//                 'localField': '_id',
+//                 'foreignField': 'parent',
+//                 'as': 'child_ref'
+//             }
+//         },
+//         {
+//             $unwind: {
+//                 'path': '$child_ref',
+//                 'preserveNullAndEmptyArrays': true
+//             }
+//         },
+//         {
+//             $lookup: {
+//                 'from': 'users',
+//                 'localField': 'child_ref.child',
+//                 'foreignField': '_id',
+//                 'as': 'child'
+//             }
+//         },
+//         {
+//             $unwind: {
+//                 'path': '$child',
+//                 'preserveNullAndEmptyArrays': true
+//             }
+//         },
+//         {
+//             $lookup: {
+//                 'from': 'usertransactions',
+//                 'localField': 'child.transaction_id',
+//                 'foreignField': '_id',
+//                 'as': 'transaction'
+//             }
+//         },
+//         {
+//             $unwind: {
+//                 'path': '$transaction',
+//                 'preserveNullAndEmptyArrays': false
+//             }
+//         },
+//         {
+//             $match: {
+//                 'transaction.is_verified': true
+//             }
+//         },
+//         {
+//             $set: {
+//                 'parent_id': '$child_ref.parent'
+//             }
+//         },
+//         {
+//             $group: {
+//                 '_id': '$parent_id',
+//                 'parent': { '$first': '$$ROOT' },
+//                 'child': { '$sum': 1 }
+//             }
+//         },
+//         {
+//             $set: {
+//                 'parent.child_count': '$child'
+//             }
+//         },
+//         {
+//             $replaceRoot: {
+//                 'newRoot': '$parent'
+//             }
+//         },
+//         {
+//             $unset: ['child_ref', 'transaction', 'child', 'parent_id', 'forgot_otp', 'confirmation_otp', 'is_terms_accepted', 'referral_code', 'withdraw_request', 'is_verified', 'status']
+//         },
+//         {
+//             $sort: { 'child_count': -1 }
+//         },
+//         ...insertIf(maxCount != null, { $match: { 'child_count': { '$gte': maxCount } } }),
+//     ];
+//     logger.log(level.info, `Pipeline getRewardedUsersPipeline ${beautify(pipeline)}`);
+//     return { pipeline };
+// }
+
+export const getRewardedUsersPipeline = (verifiedTransactionUserIDS = [], maxCount = null) => {
+    logger.log(level.info, `Pipeline getRewardedUsersPipeline maxCount = ${maxCount}, verifiedTransactionUserIDS=${beautify(verifiedTransactionUserIDS)}`);
     const pipeline = [
         {
-            $lookup: {
-                'from': 'referusers',
-                'localField': '_id',
-                'foreignField': 'parent',
-                'as': 'child_ref'
+            '$group': {
+                '_id': '$parent',
+                'child_count': {
+                    '$sum': {
+                        '$cond': {
+                            'if': { '$in': ['$$ROOT.child', [...verifiedTransactionUserIDS]] },
+                            'then': 1,
+                            'else': 0
+                        }
+                    }
+                }
             }
         },
         {
-            $unwind: {
-                'path': '$child_ref',
-                'preserveNullAndEmptyArrays': true
-            }
-        },
-        {
-            $lookup: {
+            '$lookup': {
                 'from': 'users',
-                'localField': 'child_ref.child',
+                'localField': '_id',
                 'foreignField': '_id',
-                'as': 'child'
+                'as': 'parent'
             }
         },
         {
-            $unwind: {
-                'path': '$child',
-                'preserveNullAndEmptyArrays': true
-            }
-        },
-        {
-            $lookup: {
-                'from': 'usertransactions',
-                'localField': 'child.transaction_id',
-                'foreignField': '_id',
-                'as': 'transaction'
-            }
-        },
-        {
-            $unwind: {
-                'path': '$transaction',
+            '$unwind': {
+                'path': '$parent',
                 'preserveNullAndEmptyArrays': false
             }
         },
         {
-            $match: {
-                'transaction.is_verified': true
+            '$set': {
+                'parent.user_id': '$parent._id',
+                'parent.child_count': '$child_count'
             }
         },
-        {
-            $set: {
-                'parent_id': '$child_ref.parent'
-            }
-        },
-        {
-            $group: {
-                '_id': '$parent_id',
-                'parent': { '$first': '$$ROOT' },
-                'child': { '$sum': 1 }
-            }
-        },
-        {
-            $set: {
-                'parent.child_count': '$child'
-            }
-        },
-        {
-            $replaceRoot: {
-                'newRoot': '$parent'
-            }
-        },
-        {
-            $unset: ['child_ref', 'transaction', 'child', 'parent_id', 'forgot_otp', 'confirmation_otp', 'is_terms_accepted', 'referral_code', 'withdraw_request', 'is_verified', 'status']
-        },
-        {
-            $sort: { 'child_count': -1 }
-        },
+        { '$replaceRoot': { 'newRoot': '$parent' } },
+        { '$unset': ['forgot_otp', 'confirmation_otp', 'is_terms_accepted', 'referral_code', 'withdraw_request', 'is_verified', 'status'] },
         ...insertIf(maxCount != null, { $match: { 'child_count': { '$gte': maxCount } } }),
+        { '$sort': { 'child_count': -1 } },
     ];
     logger.log(level.info, `Pipeline getRewardedUsersPipeline ${beautify(pipeline)}`);
     return { pipeline };

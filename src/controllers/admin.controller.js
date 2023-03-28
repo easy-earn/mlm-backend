@@ -213,8 +213,11 @@ export const getRewardedUsers = async (req, res) => {
     const { query } = req;
     const { childCount = null } = query;
     logger.log(level.info, `Admin getRewardedUsers childCount=${beautify(+childCount)}`);
-    const rewardedUser = await getRewardedUsersPipeline(+childCount);
-    const users = await User.aggregate(rewardedUser.pipeline);
+    var verifiedTransactionUsers = await UserTransaction.get({ is_verified: true }, { user_id: 1 })
+    verifiedTransactionUsers = verifiedTransactionUsers.map(item => item.user_id);
+    console.log('verifiedTransactionUsers', verifiedTransactionUsers);
+    const rewardedUser = await getRewardedUsersPipeline(verifiedTransactionUsers || [], childCount ? +childCount : null);
+    const users = await ReferUser.aggregate(rewardedUser.pipeline);
     return okResponse(res, messages.record_fetched, users || []);
   } catch (error) {
     logger.log(level.error, `Admin getRewardedUsers Error : ${beautify(error.message)}`);
