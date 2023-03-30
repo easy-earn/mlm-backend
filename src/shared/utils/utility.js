@@ -295,7 +295,7 @@ export const SendEmail = (email, email_type, OTP = null, NAME = null) => {
   return new Promise(async (resolve, reject) => {
     var transporter = {};
     if (APP_CONST.IS_PROD) {
-      transporter = nodeMailer.createTransport({
+      transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: process.env.SMTP_PORT,
         secure: true,
