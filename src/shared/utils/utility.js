@@ -309,7 +309,7 @@ export const SendEmail = (email, email_type, OTP = null, NAME = null) => {
         }
       })
     } else {
-      logger.log(level.info, `FROM_MAIL_ID ${process.env.FROM_MAIL_ID}, ${process.env.SEND_EMAIL_FROM_TEXT}`);
+      logger.log(level.info, `FROM_MAIL_ID ${process.env.FROM_MAIL_ID}, ${process.env.SEND_EMAIL_FROM_TEXT}, ${process.env.SMTP_PORT}`);
       transporter = nodemailer.createTransport({
         transport: "SMTP",
         host: "smtp.gmail.com",
