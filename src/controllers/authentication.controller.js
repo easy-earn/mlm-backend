@@ -51,7 +51,9 @@ export const signUp = async (request, response) => {
       email: data.email,
       phone_number: data.phone_number,
       password: data.password,
-      is_verified: false,
+      // BYPASS_OTP : 
+      // is_verified: false 
+      is_verified: true,
       is_terms_accepted: data.is_terms_accepted,
       status: 1
     };
@@ -69,14 +71,18 @@ export const signUp = async (request, response) => {
 
     newUser['referral_code'] = `${await generateRandomString(10)}`;
     User.add(newUser).then(async (resp) => {
-      if (resp.email) {
-        const OTP = await makeNumericId(6);
-        logger.log(level.info, `singup generatedOTP=${OTP}`);
-        await User.update({ _id: resp._id }, { confirmation_otp: OTP });
-        SendEmail(data.email, "verification", OTP, data?.name || 'There');
-      }
-      delete resp['confirmation_otp'];
-      logger.log(level.info, `data= ${JSON.parse(JSON.stringify(data))}`);
+      // BYPASS_OTP : 
+
+      // if (resp.email) {
+      //   const OTP = await makeNumericId(6);
+      //   logger.log(level.info, `singup generatedOTP=${OTP}`);
+      //   await User.update({ _id: resp._id }, { confirmation_otp: OTP });
+      //   SendEmail(data.email, "verification", OTP, data?.name || 'There');
+      // }
+      // delete resp['confirmation_otp'];
+      // logger.log(level.info, `data= ${JSON.parse(JSON.stringify(data))}`);
+
+      // BYPASS_OTP END 
       await generateReferenceLink(data?.parent_code, newUser?.referral_code, resp?._id);
 
       const returnData = await generateToken(response, resp.email, resp);
@@ -100,7 +106,7 @@ export const verifyOTP = async (req, res) => {
 
     if (!otp) {
       logger.log(level.error, 'VerifyOTP:  no OTP found error')
-      return paramMissingError(response, messages.missing_key.replace("{dynamic}", "One Time Password"));
+      return paramMissingError(res, messages.missing_key.replace("{dynamic}", "One Time Password"));
     }
     const filter = { email: email, confirmation_otp: otp };
     const [user] = await User.get({ email: email });
