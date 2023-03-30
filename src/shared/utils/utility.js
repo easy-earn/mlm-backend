@@ -297,7 +297,7 @@ export const SendEmail = (email, email_type, OTP = null, NAME = null) => {
     var transporter = nodemailer.createTransport({
       transport: "SMTP",
       host: "smtp.gmail.com",
-      port: 587,
+      port: process.env.SMTP_PORT,
       auth: {
         user: process.env.FROM_MAIL_ID,
         pass: process.env.FROM_MAIL_PWD
