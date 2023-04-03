@@ -294,35 +294,35 @@ export const toObjectId = (id) => {
 export const SendEmail = (email, email_type, OTP = null, NAME = null) => {
   return new Promise(async (resolve, reject) => {
     var transporter = {};
-    if (APP_CONST.IS_PROD) {
-      transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: process.env.SMTP_PORT,
-        secure: true,
-        auth: {
-          type: "OAuth2",
-          user: process.env.FROM_MAIL_ID,
-          clientId: process.env.OAUTH_CLIENT_ID,
-          clientSecret: process.env.OAUTH_CLIENT_SECRET,
-          refreshToken: process.env.OAUTH_REFRESH_TOKEN,
-          accessToken: process.env.OAUTH_ACCESS_TOKEN
-        }
-      })
-    } else {
-      logger.log(level.info, `FROM_MAIL_ID ${process.env.FROM_MAIL_ID}, ${process.env.SEND_EMAIL_FROM_TEXT}, ${process.env.SMTP_PORT}`);
-      transporter = nodemailer.createTransport({
-        transport: "SMTP",
-        host: "smtp.gmail.com",
-        port: process.env.SMTP_PORT,
-        auth: {
-          user: process.env.FROM_MAIL_ID,
-          pass: process.env.FROM_MAIL_PWD
-        },
-        secure: true,
-        tls: { rejectUnauthorized: false },
-        debug: true,
-      });
-    }
+    // if (APP_CONST.IS_PROD) {
+    //   transporter = nodemailer.createTransport({
+    //     host: 'smtp.gmail.com',
+    //     port: process.env.SMTP_PORT,
+    //     secure: true,
+    //     auth: {
+    //       type: "OAuth2",
+    //       user: process.env.FROM_MAIL_ID,
+    //       clientId: process.env.OAUTH_CLIENT_ID,
+    //       clientSecret: process.env.OAUTH_CLIENT_SECRET,
+    //       refreshToken: process.env.OAUTH_REFRESH_TOKEN,
+    //       accessToken: process.env.OAUTH_ACCESS_TOKEN
+    //     }
+    //   })
+    // } else {
+    logger.log(level.info, `FROM_MAIL_ID ${process.env.FROM_MAIL_ID}, ${process.env.SEND_EMAIL_FROM_TEXT}, ${process.env.SMTP_PORT}`);
+    transporter = nodemailer.createTransport({
+      transport: "SMTP",
+      host: "smtp.gmail.com",
+      port: process.env.SMTP_PORT,
+      auth: {
+        user: process.env.FROM_MAIL_ID,
+        pass: process.env.FROM_MAIL_PWD
+      },
+      secure: true,
+      tls: { rejectUnauthorized: false },
+      debug: true,
+    });
+    // }
 
     if (email_type == "verification") {
       VerifyEmailHtml(OTP, NAME).then((data) => {
