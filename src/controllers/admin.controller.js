@@ -463,6 +463,33 @@ export const withdrawBalance = async (req, res) => {
   }
 }
 
+export const getWithdrawHistory = async (req, res) => {
+  try {
+    const { query } = req;
+    const { option = {} } = query;
+    /**
+     * Sample Search Parameters;
+     * 
+     * option[offset] = 0 
+     * option[limit]=100
+     * option[sort][name]=-1
+     * option[search][countryCode][like]=91
+     * option[search][email][eq]=patelanish1609 @gmail.com
+     * option[searchBy]=AND
+     */
+
+    logger.log(level.info, `Admin getWithdrawHistory options=${beautify(option)}`);
+    const filter = await parseSearchOptions(option);
+    logger.log(level.info, `getWithdrawHistory filter=${beautify(filter)}`);
+    const history = await WithdrawTransaction.get(filter, null, option, { path: 'user' });
+    const count = await WithdrawTransaction.count(filter);
+    return okResponse(res, messages.record_fetched, history, count);
+  } catch (error) {
+    logger.log(level.error, `Admin getWithdrawHistory Error : ${beautify(error.message)}`);
+    return internalServerError(res, error)
+  }
+}
+
 async function updateTransactionIdIntoUser(user_id, transaction_id, transaction_verified) {
   const udpated_user = await User.update({ _id: user_id }, { transaction_id: transaction_id })
   return udpated_user;
