@@ -40,12 +40,12 @@ export const signUp = async (req, res) => {
       AdminUser.add(newUser).then(async (resp) => {
         logger.log(level.info, `AdminSignup Added : response=${beautify(resp)}`);
         // BYPASS_OTP : <uncomment it>
-        // if (resp.email) {
-        //   const OTP = await makeNumericId(6);
-        //   logger.log(level.info, `singup generatedOTP=${OTP}`);
-        //   await AdminUser.update({ _id: resp._id }, { confirmation_otp: OTP });
-        //   SendEmail(data.email, "verification", OTP, data?.name || 'There');
-        // }
+        if (resp.email) {
+          const OTP = await makeNumericId(6);
+          logger.log(level.info, `singup generatedOTP=${OTP}`);
+          await AdminUser.update({ _id: resp._id }, { confirmation_otp: OTP });
+          SendEmail(data.email, "verification", OTP, data?.name || 'There');
+        }
 
         const result = JSON.parse(JSON.stringify(resp))
         delete result['confirmation_otp'];
