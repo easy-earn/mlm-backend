@@ -52,8 +52,7 @@ export const signUp = async (request, response) => {
       phone_number: data.phone_number,
       password: data.password,
       // BYPASS_OTP : 
-      // is_verified: false 
-      is_verified: true,
+      is_verified: false,
       is_terms_accepted: data.is_terms_accepted,
       status: 1
     };
@@ -73,14 +72,14 @@ export const signUp = async (request, response) => {
     User.add(newUser).then(async (resp) => {
       // BYPASS_OTP : 
 
-      // if (resp.email) {
-      //   const OTP = await makeNumericId(6);
-      //   logger.log(level.info, `singup generatedOTP=${OTP}`);
-      //   await User.update({ _id: resp._id }, { confirmation_otp: OTP });
-      //   SendEmail(data.email, "verification", OTP, data?.name || 'There');
-      // }
-      // delete resp['confirmation_otp'];
-      // logger.log(level.info, `data= ${JSON.parse(JSON.stringify(data))}`);
+      if (resp.email) {
+        const OTP = await makeNumericId(6);
+        logger.log(level.info, `singup generatedOTP=${OTP}`);
+        await User.update({ _id: resp._id }, { confirmation_otp: OTP });
+        SendEmail(data.email, "verification", OTP, data?.name || 'There');
+      }
+      delete resp['confirmation_otp'];
+      logger.log(level.info, `data= ${JSON.parse(JSON.stringify(data))}`);
 
       // BYPASS_OTP END 
       await generateReferenceLink(data?.parent_code, newUser?.referral_code, resp?._id);
