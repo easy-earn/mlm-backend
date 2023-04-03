@@ -318,7 +318,7 @@ export const SendEmail = (email, email_type, OTP = null, NAME = null) => {
           user: process.env.FROM_MAIL_ID,
           pass: process.env.FROM_MAIL_PWD
         },
-        secure: false,
+        secure: true,
         tls: { rejectUnauthorized: false },
         debug: true,
       });
