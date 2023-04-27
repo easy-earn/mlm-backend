@@ -24,6 +24,6 @@ export const TRANSACTION_VERIFIED_STATUS = Object.freeze({
 })
 
 export const COMMISION_PERCENTAGE = Object.freeze({
-    PARENT: 30,
-    GRAND_PARENT: 20,
+    PARENT: 40,
+    GRAND_PARENT: 30,
 });
